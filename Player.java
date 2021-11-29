@@ -1,218 +1,111 @@
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Stack;
-import java.util.Scanner;
 
-/* This class is what does the majority of the work setting stuff up. It runs the game of UNO, creates the player objects,
-creates the cards, shuffles the cards, etc.
+/* This is the superclass Player. It has 2 subclasses: FakePlayer and RealPlayer. Objects of this class represent an UNO player.
 */
-public class Game
+public class Player
 {
-  private ArrayList<Player> players; //this is a list of all the Players
-  private ArrayList<Card> deck; //this is a list of all the Cards
-  private Stack<Card> discardPile; //this is a Stack of all the discarded Cards
-  private Stack<Card> cardStack; //this is a Stack of all the cards that you can draw from
+  private String name; //The player's name
+  private int numberOfCards; //the number of cards the player has
+  private ArrayList<Card> playersHand; //the Cards that a player has in their hand
+  private static Game myGame; //the Game that the players are playing
 
-  /* This is the constructor for the class. It sets the instance variables, creates Player objects, creates all the Card objects, shuffles them, etc.
-  @param String firstOpponentName - this is what you want one of your opponents to be named
-  @param String secondOpponentName - this is what you want one of your opponents to be named
-  @param String thirdOpponentName - this is what you want one of your opponents to be named
+  /* This is a constructor. It sets some instance variables.
+  @param String nameInput- this is what you want to set the player's name to
   */
-  public Game(String firstOpponentName, String secondOpponentName, String thirdOpponentName)
+  public Player(String nameInput)
   {
-    players = new ArrayList<Player>();
-    players.add(new RealPlayer("You"));
-    players.add(new FakePlayer(firstOpponentName));
-    players.add(new FakePlayer(secondOpponentName));
-    players.add(new FakePlayer(thirdOpponentName));
-    cardStack = new Stack<Card>();
-    deck = new ArrayList<Card>();
-    discardPile = new Stack<Card>();
-    initializeDeck();
-    shuffleCards(deck);
-    for (Card x : deck)
-    {
-      cardStack.add(x);
-    }
+    name = nameInput;
+    playersHand = new ArrayList<Card>();
   }
 
-  /* Creates all of the Card objects and adds them to the ArrayList deck. It creates 9 red cards at values 0 - 9, 9 blue cards valued 0 - 9,
-  9 green cards valued 0 -9, and 9 yellow cards valued 0 - 9. Then, it also creates one blue + 4, one green + 4,
-  one red + 4, and one blue + 4.
-  */
-  public void initializeDeck()
+  //Adds a card from the drawing pile to the calling player's hand.
+  public void drawCard()
   {
-    for (int i = 0; i < 4; i++)
+    if (getName().equals("You"))
     {
-      for (int x = 0; x < 9; x++)
-      {
-        String color = "";
-        if (i == 0)
-        {
-          color = "red";
-        }
-        else if (i == 1)
-        {
-          color = "blue";
-        }
-        else if (i == 2)
-        {
-          color = "green";
-        }
-        else
-        {
-          color = "yellow";
-        }
-        deck.add(new RegularCard(x, color));
-      }
-    }
-    deck.add(new PlusFourCard("red"));
-    deck.add(new PlusFourCard("blue"));
-    deck.add(new PlusFourCard("yellow"));
-    deck.add(new PlusFourCard("green"));
-  }
-
-  /* Shuffles the Cards in an ArrayList of Card objects using Collections' shuffle method
-  @param ArrayList<Card> toShuffle - this is the ArrayList of Cards to shuffle.
-  */
-  public void shuffleCards(ArrayList<Card> toShuffle)
-  {
-    Collections.shuffle(toShuffle);
-  }
-
-  /* Returns the player that should go next
-  @param Player current - this is the current player
-  @return Player - this is the player that goes next
-  */
-  public Player getNextPlayer(Player current)
-  {
-    int indexOfCurrent = players.indexOf(current);
-    if (indexOfCurrent + 1 == players.size())
-    {
-      return players.get(0);
-    }
-    return players.get(indexOfCurrent + 1);
-  }
-
-  /* The method that basically runs the UNO game.
-  */
-  public void playGame()
-  {
-    dealCards();
-    boolean gameOver = false;
-    Card current = cardStack.pop();
-    discardPile.add(current);
-    while (current.getDisplayValue().contains("+ 4"))
-    {
-      current = cardStack.pop();
-      discardPile.add(current);
-    }
-    System.out.println("The first card is: " + current.getDisplayValue());
-    Player winner = null;
-    while (!gameOver)
-    {
-      for (int i = 0; i < 4; i++)
-      {
-        Card playersCard = players.get(i).playCard(discardPile.peek());
-        if (playersCard != null)
-        {
-          discardPile.add(playersCard);
-        }
-        if (players.get(i).getNumCards() == 0)
-        {
-          gameOver = true;
-          winner = players.get(i);
-          break;
-        }
-      }
-    }
-    if (winner.getName().equals("You"))
-    {
-      System.out.println("You won the game!");
+      System.out.println("You're drawing a card");
     }
     else
     {
-      System.out.println(winner.getName() + " has won the game!");
+      System.out.println(getName() + " is drawing a card. ");
     }
+    playersHand.add(myGame.getCardStack().pop());
+    numberOfCards++;
   }
 
-  /* Returns the class' instance variable cardStack
-  @return Stack<Card> - returns the instance varaible cardStack
+  /* This method gives a card to the player.
+  @param Card cardToAddToHand- this is the card to add to the player's hand
   */
-  public Stack<Card> getCardStack()
+  public void giveCard(Card cardToAddToHand)
   {
-    return cardStack;
+    playersHand.add(cardToAddToHand);
+    numberOfCards++;
   }
 
-  //This method deals 7 cards off of the cardStack to each Player
-  public void dealCards()
-  {
-    for (int i = 0; i < 4; i++)
-    {
-      for (int x = 0; x < 7; x++)
-      {
-        players.get(i).giveCard(cardStack.pop());
-      }
-    }
-  }
-
-  /* Returns the size of the class' cardStack
-  @return int- the size of the class' cardStack
+  /* This method only exists so that I don't get a runtime erorr when I do
+  Player x = new RealPlayer()
+  And then try to call the playCard method on x.
+  @param Card doesNotMatter- this is only so that the parameters of this method and those of the subclass' versions match.
+  doesNotMatter is not used within the method.
+  @return Card- returns null, as this method should never run
   */
-  public int getCardStackSize()
+  public Card playCard(Card doesNotMatter)
   {
-    return cardStack.size();
+    System.out.println("This shouldn't run"); //it prints this out so that, if I ever see it, I know something has gone wrong
+    return null;
   }
 
-  /* Returns the size of the class' discardPile
-  @return int- the size of the class' discardPile
+  /* Returns the Player's name
+  @return String - returns the Player's name / the instance variable name
   */
-  public int getDiscardStackSize()
+  public String getName()
   {
-    return discardPile.size();
+    return name;
   }
 
-  /* If the pile to draw from (cardStack) runs out of cards, this method takes everything but the topmost card on the discard
-  pile and shuffles it before adding it to the pile to draw from. The method then returns true.
-  However, if there are no cards in the discard pile, this method will not shuffle the discard pile and add it to the pile to draw from but instead return false.
-  @return boolean - true if the method works to refill the draw pile, false if it doesn't
+  /* Returns the Player's hand
+  @return ArrayList<Card> - this is a ArrayList made up of the Cards in a player's hand
   */
-  public boolean refillCardStack()
+  public ArrayList<Card> getPlayersHand()
   {
-    if (discardPile.size() == 1)
-    {
-      return false;
-    }
-    Card cardToKeep = discardPile.pop();
-    ArrayList<Card> toShuffle = new ArrayList<Card>();
-    for (int i = 0; i < discardPile.size(); i++)
-    {
-      toShuffle.add(discardPile.pop());
-    }
-    shuffleCards(toShuffle);
-    for (int i = 0; i < toShuffle.size(); i++)
-    {
-      cardStack.add(toShuffle.get(i));
-    }
-    discardPile.add(cardToKeep);
-    return true;
+    return playersHand;
   }
 
-  /* This is the class' main method. It welcomes you to the game, asks for user input for the names of opponents, and then
-  calls various methods.
+  /* Removes a card from the player's hand.
+  @param Card removeCard - this is the card that's removed from the player's hand
   */
-  public static void main (String[] args)
+  public void removeFromPlayersHand(Card removeCard)
   {
-    System.out.println("Welcome to UNO!");
-    Scanner keyboard = new Scanner(System.in);
-    System.out.println("Enter the name of an opponent: ");
-    String opponentOneName = keyboard.nextLine();
-    System.out.println("Enter the name of a second opponent: ");
-    String opponentTwoName = keyboard.nextLine();
-    System.out.println("Enter the name of a third opponent: ");
-    String opponentThreeName = keyboard.nextLine();
-    Game myGame = new Game(opponentOneName, opponentTwoName, opponentThreeName);
-    Player.setGame(myGame);
-    myGame.playGame();
+    playersHand.remove(removeCard);
+  }
+
+  /* returns the number of cards a player has in their hand
+  @param int- the number of cards a player has in their hand
+  */
+  public int getNumCards()
+  {
+    return numberOfCards;
+  }
+
+  //decreases the number of cards a player has in their hand by 1
+  public void decreaseNum()
+  {
+    numberOfCards--;
+  }
+
+  /* Initializes the instance variable myGame
+  @param Game input- what the instance variable myGame is set to
+  */
+  public static void setGame(Game input)
+  {
+    myGame = input;
+  }
+
+  /* returns the instance variable myGame
+  @return Game - the instance variable myGame
+  */
+  public static Game getGame()
+  {
+    return myGame;
   }
 }
